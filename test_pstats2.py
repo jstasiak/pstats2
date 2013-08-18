@@ -8,6 +8,7 @@ from setup import PROJECT_ROOT
 
 
 class AddCallersTestCase(unittest.TestCase):
+
     """Tests for pstats.add_callers helper."""
 
     def test_combine_results(self):
@@ -26,6 +27,7 @@ class AddCallersTestCase(unittest.TestCase):
 
 
 class StatsTestCase(unittest.TestCase):
+
     def setUp(self):
         stats_file = join(PROJECT_ROOT, 'pstats.pck')
         self.stats = pstats.Stats(stats_file)
