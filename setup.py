@@ -25,5 +25,6 @@ if __name__ == '__main__':
         install_requires=[
             'setuptools >= 0.6b1',
             'six >= 1.3.0',
+            'recordtype >= 1.1.0',
         ],
     )

@@ -30,9 +30,25 @@ import time
 import marshal
 import re
 
+from six import iteritems
+from recordtype import recordtype
+
 __all__ = ["Stats"]
 
 __version__ = '0.1.0'
+
+
+class FunctionStats(recordtype('FunctionStatsRecord', 'cc nc tt ct callers')):
+    def __getitem__(self, index):
+        return getattr(self, self.__slots__[index])
+
+    @property
+    def percall(self):
+        return float(self.tt) / self.nc if self.nc else 0.0
+
+    @property
+    def cumpercall(self):
+        return float(self.ct) / self.cc if self.cc else 0.0
 
 
 class Stats(object):
@@ -118,10 +134,15 @@ class Stats(object):
         if not self.stats:
             raise TypeError("Cannot create or construct a %r object from %r"
                             % (self.__class__, arg))
+        self._fix_stats()
         return
 
+    def _fix_stats(self):
+        self.stats = dict((k, FunctionStats(*v))
+                          for (k, v) in iteritems(self.stats))
+
     def get_top_level_stats(self):
-        for func, (cc, nc, tt, ct, callers) in self.stats.items():
+        for func, (cc, nc, tt, ct, callers) in iteritems(self.stats):
             self.total_calls += nc
             self.prim_calls += cc
             self.total_tt += tt
@@ -152,8 +173,10 @@ class Stats(object):
                 if func in self.stats:
                     old_func_stat = self.stats[func]
                 else:
-                    old_func_stat = (0, 0, 0, 0, {},)
+                    old_func_stat = FunctionStats(0, 0, 0, 0, {})
                 self.stats[func] = add_func_stats(old_func_stat, stat)
+
+        self._fix_stats()
         return self
 
     def dump_stats(self, filename):
@@ -181,6 +204,8 @@ class Stats(object):
         "stdname": (((7, 1),), "standard name"),
         "time": (((2, -1),), "internal time"),
         "tottime": (((2, -1),), "internal time"),
+        "cumpercall": (((8, -1),), "cumulative per call time"),
+        "percall": (((9, -1),), "internal per call time"),
     }
 
     def get_sort_arg_defs(self):
@@ -209,9 +234,9 @@ class Stats(object):
         if len(field) == 1 and isinstance(field[0], int):
             # Be compatible with old profiler
             field = [{-1: "stdname",
-                      0:  "calls",
-                      1:  "time",
-                      2:  "cumulative"}[field[0]]]
+                      0: "calls",
+                      1: "time",
+                      2: "cumulative"}[field[0]]]
 
         sort_arg_defs = self.get_sort_arg_defs()
         sort_tuple = ()
@@ -223,9 +248,13 @@ class Stats(object):
             connector = ", "
 
         stats_list = []
-        for func, (cc, nc, tt, ct, callers) in self.stats.items():
-            stats_list.append((cc, nc, tt, ct) + func +
-                              (func_std_string(func), func))
+        for func, func_stats in iteritems(self.stats):
+            cc, nc, tt, ct, callers = func_stats
+            stats_list.append(
+                (cc, nc, tt, ct) + func +
+                (func_std_string(func),
+                 func_stats.cumpercall, func_stats.percall,
+                 func))
 
         stats_list.sort(key=cmp_to_key(TupleComp(sort_tuple).compare))
 
@@ -272,7 +301,7 @@ class Stats(object):
         if self.all_callees:
             return
         self.all_callees = all_callees = {}
-        for func, (cc, nc, tt, ct, callers) in self.stats.items():
+        for func, (cc, nc, tt, ct, callers) in iteritems(self.stats):
             if not func in all_callees:
                 all_callees[func] = {}
             for func2, caller in callers.items():
