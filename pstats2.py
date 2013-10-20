@@ -29,16 +29,16 @@ import os
 import time
 import marshal
 import re
+from collections import namedtuple
 
 from six import iteritems
-from recordtype import recordtype
 
 __all__ = ["Stats"]
 
 __version__ = '0.1.0'
 
 
-class FunctionStats(recordtype('FunctionStatsRecord', 'cc nc tt ct callers')):
+class FunctionStats(namedtuple('FunctionStatsRecord', 'cc nc tt ct callers')):
     def __getitem__(self, index):
         return getattr(self, self.__slots__[index])
 

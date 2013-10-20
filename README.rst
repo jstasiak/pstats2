@@ -9,7 +9,7 @@ pstats2
 
 It's compatible with:
 
-* CPython 2.6, 2.7
+* CPython 2.x >= 2.6, 3.x >= 3.2
 * PyPy 1.9+
 
 It's API-compatible with *pstats*. Changes between *pstats* and *pstats2*:
